@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#733e6c">
+  <title>TomurcuKids · Mini Sudoku</title>
+  <style>
+    :root { font-family: ui-rounded, "Avenir Next", system-ui, sans-serif; color: #382d3d; background: #fff9ee; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; }
+    button { font: inherit; cursor: pointer; touch-action: manipulation; }
+    .app { max-width: 680px; margin: auto; padding: max(22px, env(safe-area-inset-top)) 18px max(30px, env(safe-area-inset-bottom)); }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .brand { font-size: 15px; font-weight: 800; letter-spacing: .02em; color: #733e6c; }
+    .small { border: 1px solid #d8c9d4; background: white; border-radius: 18px; padding: 10px 14px; color: #65455e; font-size: 14px; }
+    h1 { margin: 24px 0 5px; font-size: clamp(29px, 6vw, 42px); line-height: 1.15; color: #61365c; }
+    .help { margin: 0 0 20px; color: #695d68; font-size: 16px; line-height: 1.45; }
+    .board {
+  width: min(100%, 480px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  border: 3px solid #7e577a;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px #683b6220;
+  aspect-ratio: 1;
+  background: #fff;
+}
+    .cell {
+  display: grid;
+  place-items: center;
+  padding: 5px;
+  border: 1px solid #d8c9d4;
+  background: #fff;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  font-size: clamp(30px, 9vw, 68px);
+}    .cell:nth-child(4n+2) { border-right: 3px solid #7e577a; }
+    .cell:nth-child(n+5):nth-child(-n+8) { border-bottom: 3px solid #7e577a; }
+    .cell.given { background: #f5edf3; }
+    .cell.selected { background: #fff0c5; outline: 3px solid #e2aa48; outline-offset: -4px; }
+    .cell.wrong { background: #ffe7e1; }
+    .cell img, .choice img { width: 80%; height: 80%; object-fit: contain; }
+    .cell:focus-visible, button:focus-visible { outline: 3px solid #e9a42d; outline-offset: 2px; }
+    .palette { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; max-width: 480px; margin: 18px auto 0; }
+    .choice { height: clamp(68px, 18vw, 100px); display: grid; place-items: center; font-size: clamp(30px, 9vw, 62px); border: 2px solid #e6d6e1; border-radius: 20px; background: white; }
+    .choice:active { transform: scale(.96); }
+    .status { min-height: 28px; text-align: center; color: #79506f; font-size: 16px; margin: 15px 0 5px; }
+    .actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 14px 0; }
+    .primary { background: #733e6c; color: white; border: 0; border-radius: 16px; padding: 13px 18px; font-weight: 700; }
+    .secondary { background: white; color: #63375f; border: 1px solid #d8c9d4; border-radius: 16px; padding: 13px 18px; }
+    dialog { border: 0; border-radius: 24px; max-width: min(92vw, 460px); padding: 23px; box-shadow: 0 18px 60px #382d3d66; }
+    dialog::backdrop { background: #3020309e; }
+    dialog h2 { margin-top: 0; color: #61365c; }
+    dialog p { line-height: 1.45; }
+    input[type=file] { display: block; width: 100%; margin: 12px 0; font: inherit; }
+    .credit { text-align: center; margin-top: 22px; color: #8a7485; font-size: 13px; }
+    @media (max-width: 380px) { .app { padding-left: 12px; padding-right: 12px; } }
+  #parentButton {
+  display: none;
+}
+.level-picker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 0 auto 16px;
+  color: #65455e;
+  font-weight: 700;
+}
+
+.level-picker select {
+  padding: 9px 14px;
+  border: 1px solid #d8c9d4;
+  border-radius: 14px;
+  background: white;
+  color: #61365c;
+  font: inherit;
+}
+  </style>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icons/icon-180.png">
+
+<meta name="theme-color" content="#733e6c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Mini Sudoku">
+</head>
+<body>
+  <main class="app">
+    <header><span class="brand">TOMURCUKIDS</span><button class="small" id="parentButton" type="button">Ebeveyn alanı</button></header>
+    <h1>Mini Sudoku</h1>
+    <p class="help">Her sırada, sütunda ve dört karelik bölgede her resimden bir tane olsun.</p>
+    <div class="level-picker">
+  <label for="difficulty">Seviye</label>
+
+  <select id="difficulty">
+    <option value="4">Başlangıç</option>
+    <option value="6" selected>Kolay</option>
+    <option value="8">Orta</option>
+  </select>
+</div>
+    <div id="board" class="board" role="grid" aria-label="Dört çarpı dört Sudoku"></div>
+    <div id="palette" class="palette" aria-label="Resimler"></div>
+    <p id="status" class="status" role="status" aria-live="polite">Boş bir kare seç, sonra bir resme dokun.</p>
+    <div class="actions"><button class="secondary" id="erase" type="button">Kareyi boşalt</button><button class="primary" id="new" type="button">Yeni oyun</button></div>
+    <p class="credit">MoMade ♡</p>
+  </main>
+  <dialog id="parentDialog">
+    <h2>Çizimlerini ekle</h2>
+    <p>Dört ayrı JPG veya PNG seç. Görseller yalnızca bu cihazda saklanır. Her oyunda aynı dört çizim kullanılır.</p>
+    <input id="images" type="file" accept="image/png,image/jpeg,image/webp" multiple aria-label="Dört çizim seç">
+    <p id="uploadStatus" role="status"></p>
+    <button class="primary" id="closeDialog" type="button">Oyuna dön</button>
+  </dialog>
+  <script>
+   const glyphs = ['🌞','🌙','⭐','☁️'];
+
+let artwork = [
+  './images/pumpkins/pumpkin1.PNG',
+  './images/pumpkins/pumpkin2.PNG',
+  './images/pumpkins/pumpkin3.PNG',
+  './images/pumpkins/pumpkin4.PNG'
+];
+    
+    const boardEl = document.getElementById('board');
+    const paletteEl = document.getElementById('palette');
+    const statusEl = document.getElementById('status');
+    const difficultyEl = document.getElementById('difficulty');
+    const dialog = document.getElementById('parentDialog');
+    let solution, givens, entries, selected = -1, mistakes = 0;
+
+    function shuffle(values) {
+      const a = values.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i],a[j]] = [a[j],a[i]];
+      }
+      return a;
+    }
+    function makeSolution() {
+      // A valid 4×4 solution: independently shuffle symbols, pairs of rows/columns and the bands.
+      const symbols = shuffle([0,1,2,3]);
+      const rows = shuffle([0,1]).flatMap(b => shuffle([0,1]).map(r => b * 2 + r));
+      const cols = shuffle([0,1]).flatMap(b => shuffle([0,1]).map(c => b * 2 + c));
+      return rows.flatMap(r => cols.map(c => symbols[(r * 2 + Math.floor(r / 2) + c) % 4]));
+    }
+    function candidates(grid, index) {
+      const r = Math.floor(index / 4), c = index % 4, used = new Set();
+      for (let k = 0; k < 4; k++) { used.add(grid[r * 4 + k]); used.add(grid[k * 4 + c]); }
+      const br = Math.floor(r / 2) * 2, bc = Math.floor(c / 2) * 2;
+      for (let dr = 0; dr < 2; dr++) for (let dc = 0; dc < 2; dc++) used.add(grid[(br + dr) * 4 + bc + dc]);
+      return [0,1,2,3].filter(n => !used.has(n));
+    }
+    function countSolutions(grid, limit = 2) {
+      let best = -1, opts = null;
+      for (let i = 0; i < 16; i++) if (grid[i] === -1) {
+        const c = candidates(grid, i);
+        if (!c.length) return 0;
+        if (!opts || c.length < opts.length) { best = i; opts = c; }
+      }
+      if (best === -1) return 1;
+      let count = 0;
+      for (const n of opts) {
+        grid[best] = n;
+        count += countSolutions(grid, limit - count);
+        if (count >= limit) break;
+      }
+      grid[best] = -1;
+      return count;
+    }
+    function newGame() {
+  solution = makeSolution();
+  givens = solution.slice();
+
+  const targetBlanks = Number(difficultyEl.value);
+  let removed = 0;
+
+  for (const i of shuffle([...Array(16).keys()])) {
+    if (removed >= targetBlanks) break;
+
+    const old = givens[i];
+    givens[i] = -1;
+
+    if (countSolutions(givens.slice()) === 1) {
+      removed++;
+    } else {
+      givens[i] = old;
+    }
+  }
+
+  entries = givens.slice();
+  selected = -1;
+  mistakes = 0;
+  statusEl.textContent = 'Boş bir kare seç, sonra bir resme dokun.';
+  render();
+}
+    function symbol(node, value) {
+      if (value === -1) return;
+      if (artwork.length === 4) {
+        const img = document.createElement('img');
+        img.src = artwork[value]; img.alt = '';
+        node.append(img);
+      } else node.textContent = glyphs[value];
+    }
+    function render() {
+      boardEl.replaceChildren();
+      entries.forEach((value, i) => {
+        const cell = document.createElement('button');
+        cell.type = 'button';
+        cell.className = 'cell' + (givens[i] !== -1 ? ' given' : '') + (selected === i ? ' selected' : '');
+        cell.setAttribute('role','gridcell');
+        cell.setAttribute('aria-label', `Satır ${Math.floor(i/4)+1}, sütun ${i%4+1}: ${value === -1 ? 'boş' : 'resim ' + (value+1)}${givens[i] !== -1 ? ', hazır' : ''}`);
+        cell.setAttribute('aria-selected', selected === i ? 'true' : 'false');
+        symbol(cell, value);
+        if (givens[i] === -1) cell.onclick = () => { selected = i; render(); };
+        else cell.disabled = true;
+        boardEl.append(cell);
+      });
+      paletteEl.replaceChildren();
+      for (let n = 0; n < 4; n++) {
+        const choice = document.createElement('button');
+        choice.className = 'choice'; choice.type = 'button';
+        choice.setAttribute('aria-label', 'Resim ' + (n+1));
+        symbol(choice, n);
+        choice.onclick = () => place(n);
+        paletteEl.append(choice);
+      }
+    }
+    function place(n) {
+      if (selected < 0) { statusEl.textContent = 'Önce boş bir kare seç.'; return; }
+      if (n !== solution[selected]) {
+        mistakes++; statusEl.textContent = 'Bir daha dene ♡';
+        const cell = boardEl.children[selected]; cell.classList.add('wrong');
+        setTimeout(() => cell.classList.remove('wrong'), 650);
+        return;
+      }
+      entries[selected] = n; selected = -1; render();
+      statusEl.textContent = entries.every((v,i) => v === solution[i])
+        ? 'Harika! Sudoku tamamlandı 🎉' : 'Evet, doğru! Devam edelim.';
+    }
+    document.getElementById('new').onclick = newGame;
+    difficultyEl.onchange = newGame;
+    document.getElementById('erase').onclick = () => {
+      if (selected >= 0 && givens[selected] === -1) {
+        entries[selected] = -1; render();
+        statusEl.textContent = 'Kare boşaltıldı.';
+      }
+    };
+    document.getElementById('parentButton').onclick = () => dialog.showModal();
+    document.getElementById('closeDialog').onclick = () => dialog.close();
+    document.getElementById('images').onchange = async event => {
+      const files = [...event.target.files];
+      const message = document.getElementById('uploadStatus');
+      if (files.length !== 4 || files.some(f => !f.type.startsWith('image/'))) {
+        message.textContent = 'Lütfen tam dört görsel seç.'; return;
+      }
+      try {
+        const resized = await Promise.all(files.map(file => new Promise((resolve,reject) => {
+          const img = new Image();
+          const url = URL.createObjectURL(file);
+          img.onload = () => {
+            const canvas = document.createElement('canvas'); canvas.width = canvas.height = 256;
+            const scale = Math.min(240/img.width, 240/img.height);
+            const w = img.width*scale, h = img.height*scale;
+            canvas.getContext('2d').drawImage(img, (256-w)/2, (256-h)/2, w, h);
+            URL.revokeObjectURL(url); resolve(canvas.toDataURL('image/png'));
+          };
+          img.onerror = () => { URL.revokeObjectURL(url); reject(Error('Görsel açılamadı')); };
+          img.src = url;
+        })));
+        localStorage.setItem(storageKey, JSON.stringify(resized));
+        artwork = resized; message.textContent = 'Dört çizim eklendi!';
+        render();
+      } catch (_) { message.textContent = 'Görseller kaydedilemedi. Daha küçük dosyalar deneyebilirsin.'; }
+    };
+    newGame();
+    if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js');
+  });
+}
+  </script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+{
+  "name": "TomurcuKids Mini Sudoku",
+  "short_name": "Mini Sudoku",
+  "description": "Çocuklar için görsel mini sudoku oyunu.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fffaf5",
+  "theme_color": "#733e6c",
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
